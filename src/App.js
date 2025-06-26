@@ -1,23 +1,17 @@
-import logo from './logo.svg';
+
 import './App.css';
+import Header from './components/Header';
+import RegistrationForm from './components/RegistrationForm';
+import ResumeUploader from './components/ResumeUploader';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p className='p-10 border border-gray-50 rounded-lg'>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className='min-h-screen bg-gray-50 text-gray-800'>
+      <Header />
+      <main className='container mx-auto p-4'>
+        <ResumeUploader />
+        <RegistrationForm />
+      </main>
     </div>
   );
 }
