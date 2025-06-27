@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import PDFToText from "react-pdftotext";
 import Tesseract from "tesseract.js";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import ResumeFieldExtractor from "./ResumeFieldExtractor";
 
 
 console.log("SmartTextParser component loaded");
@@ -112,12 +113,15 @@ const SmartTextParser = ({ file }) => {
 
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
 
-      <textarea
-        className="w-full h-80 border p-3 text-sm font-mono rounded-lg shadow"
-        value={text}
-        readOnly
-        placeholder="Parsed resume text will appear here..."
-      ></textarea>
+        <textarea
+            className="w-full h-80 border p-3 text-sm font-mono rounded-lg shadow"
+            value={text}
+            readOnly
+            placeholder="Parsed resume text will appear here..."
+        ></textarea>
+        {text && !loading && (
+            <ResumeFieldExtractor rawText={text} />
+        )}
 
       {loading && <p className="text-sm text-gray-500 mt-2">Processing file, please wait...</p>}
     </div>
