@@ -17,7 +17,7 @@ const FileUpload = ({ onFileSelect }) => {
 
       <input
         type="file"
-        accept=".pdf,image/*"
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
         onChange={handleChange}
         className="block w-full text-sm text-gray-600
                    file:mr-4 file:py-2 file:px-4

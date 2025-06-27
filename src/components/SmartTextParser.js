@@ -3,27 +3,27 @@ import PDFToText from "react-pdftotext";
 import Tesseract from "tesseract.js";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import ResumeFieldExtractor from "./ResumeFieldExtractor";
+import mammoth from "mammoth";
 
 
 console.log("SmartTextParser component loaded");
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 
-const SmartTextParser = ({ file }) => {
 
+const SmartTextParser = ({ file }) => {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [usedOCR, setUsedOCR] = useState(false);
   const [error, setError] = useState("");
-
-  console.log("SmartTextParser initialized with file:", file);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const extractTextFromImage = async (image) => {
     const result = await Tesseract.recognize(image, "eng", {
       logger: (m) => {
-        if (m.status === "recognizing text") {
-          setProgress((prev) => Math.min(prev + m.progress / 10, 1));
+        if (m.status === "recognizing text" && m.progress != null) {
+          setProgress(m.progress);
         }
       },
     });
@@ -32,8 +32,6 @@ const SmartTextParser = ({ file }) => {
   };
 
   const extractTextUsingOCR = async () => {
-    if (file.type !== "application/pdf") return;
-
     const pdf = await getDocument(await file.arrayBuffer()).promise;
     let fullText = "";
 
@@ -43,11 +41,11 @@ const SmartTextParser = ({ file }) => {
 
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
-
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
       await page.render({ canvasContext: context, viewport }).promise;
+
       const pageText = await extractTextFromImage(canvas);
       fullText += pageText + "\n\n";
       setProgress(pageNum / pdf.numPages);
@@ -57,29 +55,72 @@ const SmartTextParser = ({ file }) => {
   };
 
   const extractSmartText = async () => {
-    if (!file || file.type !== "application/pdf") return;
+    if (!file) return;
 
     setLoading(true);
     setText("");
     setProgress(0);
     setUsedOCR(false);
     setError("");
+    setStatusMessage("");
+
+    const fileType = file.type;
+    const fileName = file.name.toLowerCase();
 
     try {
-      const extracted = await PDFToText(file);
-      if (!extracted.trim()) throw new Error("Empty or unreadable PDF text.");
-      setText(extracted);
-    } catch (err) {
-      console.warn("Falling back to OCR due to error:", err.message);
-      setUsedOCR(true);
+        // Handle PDF (text-based first, fallback to OCR)
+      if (fileType === "application/pdf") {
 
-      try {
-        const ocrResult = await extractTextUsingOCR();
-        setText(ocrResult);
-      } catch (ocrError) {
-        setError("OCR failed. Try using a clearer file.");
-        console.error("OCR Error:", ocrError);
+        setStatusMessage("Extracting text from PDF...");
+
+        try {
+          const extracted = await PDFToText(file);
+          if (!extracted.trim()) throw new Error("Empty or unreadable PDF text.");
+          setText(extracted);
+          setStatusMessage("Successfully extracted PDF text.");
+        } catch (err) {
+          setUsedOCR(true);
+          setStatusMessage("Falling back to OCR (PDF text unreadable)...");
+
+          const ocrResult = await extractTextUsingOCR();
+          setText(ocrResult);
+          setStatusMessage("OCR completed from PDF.");
+        }
+
+        //  Handle images: jpg, jpeg, png
+      } else if (
+        fileType.startsWith("image/") &&
+        (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || fileName.endsWith(".png"))
+      ) {
+        setStatusMessage("Running OCR on image...");
+        const imageText = await extractTextFromImage(file);
+        setText(imageText);
+        setStatusMessage("OCR completed from image.");
+
+        //  Handle .docx files
+      } else if (
+        fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        fileName.endsWith(".docx")
+      ) {
+        setStatusMessage("Extracting text from DOCX...");
+        const arrayBuffer = await file.arrayBuffer();
+        const { value: docxText } = await mammoth.extractRawText({ arrayBuffer });
+        setText(docxText);
+        setStatusMessage("Successfully extracted DOCX content.");
+
+        //  Handle .doc files
+      } else if (fileName.endsWith(".doc")) {
+        setError("DOC files are not supported. Please convert to .docx or PDF.");
+        setStatusMessage("Upload failed: unsupported DOC format.");
+
+      } else {
+        setError("Unsupported file type. Please upload a PDF, DOCX, JPG, or PNG.");
+        setStatusMessage("Upload failed: unsupported file type.");
       }
+    } catch (err) {
+      console.error("Error while parsing:", err);
+      setError("Failed to process file. Try a different format or clearer version.");
+      setStatusMessage("Processing failed.");
     }
 
     setLoading(false);
@@ -105,6 +146,10 @@ const SmartTextParser = ({ file }) => {
         </div>
       )}
 
+      {statusMessage && (
+        <p className="text-sm text-blue-700 font-medium mb-2">{statusMessage}</p>
+      )}
+
       {usedOCR && !loading && (
         <p className="text-sm text-yellow-600 font-medium mb-2">
           Used OCR fallback (PDF text unreadable).
@@ -113,15 +158,16 @@ const SmartTextParser = ({ file }) => {
 
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
 
-        <textarea
-            className="w-full h-80 border p-3 text-sm font-mono rounded-lg shadow"
-            value={text}
-            readOnly
-            placeholder="Parsed resume text will appear here..."
-        ></textarea>
-        {text && !loading && (
-            <ResumeFieldExtractor rawText={text} />
-        )}
+      <textarea
+        className="w-full h-80 border p-3 text-sm font-mono rounded-lg shadow"
+        value={text}
+        readOnly
+        placeholder="Parsed resume text will appear here..."
+      ></textarea>
+
+      {text && !loading && (
+        <ResumeFieldExtractor rawText={text} />
+      )}
 
       {loading && <p className="text-sm text-gray-500 mt-2">Processing file, please wait...</p>}
     </div>
