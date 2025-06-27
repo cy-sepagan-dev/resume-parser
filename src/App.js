@@ -1,10 +1,7 @@
-
 import './App.css';
 import React, { useState } from 'react';
 import FileUpload from './components/FileUpload';
 import SmartTextParser from './components/SmartTextParser';
-
-
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -12,8 +9,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-10">
       <FileUpload onFileSelect={setSelectedFile} />
-      {selectedFile && selectedFile.type === "application/pdf" && (
-        // <SmartTextParser file={selectedFile} />
+      {selectedFile && (
         <SmartTextParser file={selectedFile} />
       )}
     </div>

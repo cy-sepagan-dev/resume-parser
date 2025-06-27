@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-
+// Supported formats: PDF, DOCX, JPG, PNG   
 const FileUpload = ({ onFileSelect }) => {
   const [file, setFile] = useState(null);
 
+  console.log("FileUpload component initialized" +  file);
+  
   const handleChange = (e) => {
     const uploaded = e.target.files[0];
     if (!uploaded) return;
