@@ -1,17 +1,21 @@
 
 import './App.css';
-import Header from './components/Header';
-import RegistrationForm from './components/RegistrationForm';
-import ResumeUploader from './components/ResumeUploader';
+import React, { useState } from 'react';
+import FileUpload from './components/FileUpload';
+import SmartTextParser from './components/SmartTextParser';
+
+
 
 function App() {
+  const [selectedFile, setSelectedFile] = useState(null);
+
   return (
-    <div className='min-h-screen bg-gray-50 text-gray-800'>
-      <Header />
-      <main className='container mx-auto p-4'>
-        <ResumeUploader />
-        <RegistrationForm />
-      </main>
+    <div className="min-h-screen bg-gray-100 p-10">
+      <FileUpload onFileSelect={setSelectedFile} />
+      {selectedFile && selectedFile.type === "application/pdf" && (
+        // <SmartTextParser file={selectedFile} />
+        <SmartTextParser file={selectedFile} />
+      )}
     </div>
   );
 }
