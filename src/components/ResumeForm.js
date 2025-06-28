@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import TextInput from "./ui/TextInputs";
 import TextArea from "./ui/TextArea";
 import Button from "./ui/Button";
+import nlp from "compromise";
 
 const extractFields = (text) => {
   const result = {
@@ -12,27 +13,85 @@ const extractFields = (text) => {
     education: "",
   };
 
-  const lines = text.split("\n").map(line => line.trim()).filter(Boolean);
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-  const probableName = lines.find(line =>
-    /^[A-Z][a-z]+(?: [A-Z][a-z]+)+$/.test(line) && !/resume|summary|profile/i.test(line)
+  const joinedText = lines.join(" ");
+
+  // 1. Extract full name using NLP (compromise)
+  const doc = nlp(joinedText);
+  const people = doc.people().out("array");
+  if (people.length > 0) {
+    result.name = people[0];
+  }
+
+  // 2. Email extraction (more robust pattern)
+  const emailMatch = joinedText.match(
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/g
   );
-  result.name = probableName || "";
+  if (emailMatch?.length) {
+    result.email = emailMatch[0];
+  }
 
-  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/);
-  result.email = emailMatch?.[0] || "";
+  // 3. Phone extraction (handles more formats, dashes, spaces)
+  const phoneMatch = joinedText.match(
+    /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}/g
+  );
+  if (phoneMatch?.length) {
+    result.phone = phoneMatch[0];
+  }
 
-  const phoneMatch = text.match(/(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,4}\)?[-.\s]?)*\d{3}[-.\s]?\d{4}/);
-  result.phone = phoneMatch?.[0] || "";
+  // 4. Fallback: guess name from email if not detected
+  if (!result.name && result.email) {
+    const emailPrefix = result.email.split("@")[0].split(/[._-]/);
+    const guessedName = emailPrefix
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join(" ");
+    result.name = guessedName;
+  }
 
-  const expMatch = text.match(/(?:Employment History|Work Experience|Professional Experience)[\s\S]{0,2000}/i);
-  result.experience = expMatch ? expMatch[0].split(/Education/i)[0].trim() : "";
+  // 5. Extract work experience block
+  const workMatch = text.match(
+    /(Work Experience|Employment History|Professional Experience)([\s\S]{0,2500})/i
+  );
+  if (workMatch) {
+    const block = workMatch[2]
+      .replace(/(Education|Academic Background|Skills|Certifications|Languages).*/is, "")
+      .trim();
 
-  const eduMatch = text.match(/(?:Education|Academic Background)[\s\S]{0,1500}/i);
-  result.education = eduMatch?.[0].trim() || "";
+    // Optional line-based cleanup
+    const relevantLines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 10 || /Developer|Engineer|Company|Technologies/i.test(line));
+
+    result.experience = relevantLines.join("\n").trim();
+  }
+
+  // 6. Extract education block
+  const eduMatch = text.match(
+    /(Education|Academic Background)([\s\S]{0,2000})/i
+  );
+  if (eduMatch) {
+    const block = eduMatch[2]
+      .replace(/(Skills|Certifications|Languages|Experience).*/is, "")
+      .trim();
+
+    const eduLines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) =>
+        /Bachelor|Master|College|University|Graduate|High School|School/i.test(line)
+      );
+
+    result.education = eduLines.join("\n").trim();
+  }
 
   return result;
 };
+
 
 const ResumeForm = ({ extractedData, disabled = false }) => {
   const [form, setForm] = useState({
