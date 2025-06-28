@@ -16,6 +16,8 @@ This application allows users to upload resumes and automatically extract and pr
   - `react-pdftotext` for native PDF parsing
   - `pdf.js` and `tesseract.js` for scanned PDFs and images (OCR)
   - `mammoth.js` for extracting raw text from `.docx`
+  - `compromise.js` for more accurate extraction
+
 - Displays extracted resume text in a preview box
 - Auto-fills a resume form with structured fields:
   - Name
@@ -73,3 +75,4 @@ npm start
 - tesseract.js
 - react-pdftotext
 - mammoth
+- compromise
