@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import TextInput from "./ui/TextInputs";
+import TextArea from "./ui/TextArea";
+import Button from "./ui/Button";
 
 // Improved extractor function
 const extractFields = (text) => {
@@ -44,7 +47,7 @@ const extractFields = (text) => {
   return result;
 };
 
-const ResumeForm = ({ extractedData }) => {
+const ResumeForm = ({ extractedData, disabled = false }) => {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -86,85 +89,81 @@ const ResumeForm = ({ extractedData }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 text-sm">
-      {/* Name */}
-      <div>
-        <label className="block font-medium mb-1">Full Name</label>
-        <input
-          type="text"
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded shadow-sm"
-        />
-        {errors.name && <p className="text-red-500">{errors.name}</p>}
-      </div>
+    <form onSubmit={handleSubmit} className="grid gap-6 grid-cols-1">
 
-      {/* Email */}
-      <div>
-        <label className="block font-medium mb-1">Contact Email</label>
-        <input
+      <h3 className="text-xl text-slate-500 font-semibold">Personal Information</h3>
+      <div className="grid md:grid-cols-2 col-span-2 gap-6 p-8 bg-white rounded-lg shadow-sm">
+        <div className="md:col-span-2">
+          <TextInput
+            label="*Full Name"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            error={errors.name}
+            disabled={disabled}
+            placeholder={"e.g. Juan Dela Cruz"}
+          />
+        </div>       
+
+        <TextInput
+          label="*Email"
           type="email"
           name="email"
           value={form.email}
           onChange={handleChange}
-          className="w-full border px-3 py-2 rounded shadow-sm"
+          error={errors.email}
+          disabled={disabled}
+          placeholder={"Your email address"}
         />
-        {errors.email && <p className="text-red-500">{errors.email}</p>}
-      </div>
 
-      {/* Phone */}
-      <div>
-        <label className="block font-medium mb-1">Phone Number</label>
-        <input
-          type="text"
+        <TextInput
+          label="*Phone Number"
           name="phone"
           value={form.phone}
           onChange={handleChange}
-          className="w-full border px-3 py-2 rounded shadow-sm"
-        />
-        {errors.phone && <p className="text-red-500">{errors.phone}</p>}
-      </div>
-
-      {/* Summary */}
-      <div>
-        <label className="block font-medium mb-1">Professional Summary</label>
-        <textarea
-          name="summary"
-          value={form.summary}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded shadow-sm h-28"
+          error={errors.phone}
+          disabled={disabled}
+          placeholder={"e.g. +63 912 345 6789"}
         />
       </div>
 
-      {/* Experience */}
-      <div>
-        <label className="block font-medium mb-1">Work Experience</label>
-        <textarea
-          name="experience"
-          value={form.experience}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded shadow-sm h-32"
-        />
+      <h3 className="text-xl text-slate-500 font-semibold">Work Experience</h3>
+      <div className="grid md:grid-cols-2 col-span-2 gap-6 p-8 bg-white rounded-lg shadow-sm">
+        <div className="md:col-span-2">
+          <TextArea
+            label="Work Experience"
+            name="experience"
+            value={form.experience}
+            onChange={handleChange}
+            rows={6}
+            disabled={disabled}
+          />
+        </div>
       </div>
 
-      {/* Education */}
-      <div>
-        <label className="block font-medium mb-1">Education</label>
-        <textarea
-          name="education"
-          value={form.education}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded shadow-sm h-32"
-        />
-      </div>
-
-      <button
-        type="submit"
-        className="bg-black text-white px-6 py-2 rounded hover:bg-gray-800"
-      >
-        Submit
-      </button>
+      <h3 className="text-xl text-slate-500 font-semibold">Educational Background</h3>
+      <div className="grid md:grid-cols-2 col-span-2 gap-6 p-8 bg-white rounded-lg shadow-sm">
+        <div className="md:col-span-2">
+          <TextArea
+            label="Education"
+            name="education"
+            value={form.education}
+            onChange={handleChange}
+            rows={6}
+            disabled={disabled}
+          />        
+        </div>
+      </div>     
+      <div className="col-span-2 flex justify-center">
+        <Button
+          type={"submit"}
+          variant="primary"
+          disabled={disabled}
+          classNames="px-10"
+        >
+          Submit Form
+        </Button>
+      </div>      
     </form>
   );
 };
