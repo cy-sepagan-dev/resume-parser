@@ -68,6 +68,10 @@ npm start
 
 - Upload invalid or empty files to test error handling
 
+## Demo
+🔗 GitHub Repo: [https://github.com/cysepagan/resume-parser ](https://github.com/cy-sepagan-dev/resume-parser)  
+🔗 Live Demo: [https://resume-parser.vercel.app](https://resume-parser-by-cy-sepagan.vercel.app/)
+
 ## Tech Stack
 - React.js
 - Tailwind CSS
