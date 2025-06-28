@@ -1,6 +1,6 @@
 import React from 'react'
-import Logo from '../assets/logo.png'
-import Button from './Button'
+import Logo from '../../assets/logo.png'
+import Button from '../ui/Button'
 
 const Header = () => {
   return (

@@ -3,18 +3,15 @@ import PDFToText from "react-pdftotext";
 import Tesseract from "tesseract.js";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import mammoth from "mammoth";
-import ResumeForm from "./ResumeForm";
-
-// Set PDF.js worker source
+import ResumeForm from "../components/ResumeForm";
+import StatusNotice from "../components/ui/StatusNotice";
 
 GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 console.log("SmartTextParser component initialized");
 
-// SmartTextParser component to handle resume text extraction
 const SmartTextParser = ({ file }) => {
 
-  // State variables to manage file processing
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -77,7 +74,6 @@ const SmartTextParser = ({ file }) => {
     console.log("Processing file:", fileName, "Type:", fileType);
 
     try {
-
       // Handle PDF
       if (fileType === "application/pdf") {
         setStatusMessage("Extracting text from PDF...");
@@ -128,12 +124,15 @@ const SmartTextParser = ({ file }) => {
         setStatusMessage("Successfully extracted DOCX content.");
 
       // Handle .doc (unsupported)
-      } else if (fileName.endsWith(".doc")) {
+      } else if (
+        fileName.endsWith(".doc")
+      ) {
         setError("DOC files are not supported. Please convert to .docx or PDF.");
         setStatusMessage("Upload failed: unsupported DOC format.");
 
       // Invalid file type
-      } else {
+      } else 
+      {
         setError("Unsupported file type. Please upload a PDF, DOCX");
         setStatusMessage("Upload failed: unsupported file type.");
       }
@@ -152,12 +151,45 @@ const SmartTextParser = ({ file }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file]);
 
-  return (
-    <div className="mt-8 max-w-4xl mx-auto">
-      <h3 className="text-lg font-semibold text-gray-700 mb-2">
-        Smart Resume Text Extractor
-      </h3>
+  useEffect(() => {
+    // If there's a status or error, auto-clear it after 5 seconds
+    if (statusMessage || error || usedOCR) {
+      const timeoutId = setTimeout(() => {
+        setStatusMessage("");
+        setError("");
+        setUsedOCR(false);
+      }, 10000);
 
+      // Clean up timeout when component unmounts or file changes
+      return () => clearTimeout(timeoutId);
+    }
+  }, [statusMessage, error, usedOCR]);
+
+  return (
+    <div>
+      {/* Statuses */}
+      <div className="space-y-2 mb-4">
+
+        <StatusNotice
+          type="info"
+          message={statusMessage}
+          show={Boolean(statusMessage)}
+        />
+
+        <StatusNotice
+          type="warning"
+          message="We used OCR because the document’s text was not readable."
+          show={usedOCR && !loading}
+        />
+
+        <StatusNotice
+          type="error"
+          message={error}
+          show={Boolean(error)}
+        />
+      </div>
+      
+      {/* Loading Bar */}
       {loading && (
         <div className="w-full bg-gray-200 rounded h-3 mb-4 overflow-hidden">
           <div
@@ -166,39 +198,13 @@ const SmartTextParser = ({ file }) => {
           ></div>
         </div>
       )}
+      
 
-      {statusMessage && (
-        <p className="text-sm text-blue-700 font-medium mb-2">{statusMessage}</p>
-      )}
-
-      {usedOCR && !loading && (
-        <p className="text-sm text-yellow-600 font-medium mb-2">
-          Used OCR fallback (PDF text unreadable).
-        </p>
-      )}
-
-      {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
-
-      <textarea
-        className="w-full h-80 border p-3 text-sm font-mono rounded-lg shadow"
-        value={text}
-        readOnly
-        placeholder="Parsed resume text will appear here..."
-      ></textarea>
-
-      {text && !loading && (
-        <div className="mt-6">
-          <h4 className="text-md font-semibold text-gray-700 mb-2">
-            Edit Extracted Resume Details
-          </h4>
-          <ResumeForm extractedData={text} />
-        </div>
-      )}
-
-      {loading && (
-        <p className="text-sm text-gray-500 mt-2">Processing file, please wait...</p>
-      )}
+      <div className={`mt-6 transition-opacity duration-200 ${loading ? "pointer-events-none opacity-50" : ""}`}>
+        <ResumeForm extractedData={text} />
+      </div>
     </div>
+    
   );
 };
 
