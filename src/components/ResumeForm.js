@@ -1,235 +1,126 @@
 import React, { useEffect, useState } from "react";
 import TextInput from "./ui/TextInputs";
-import TextArea from "./ui/TextArea";
 import Button from "./ui/Button";
-import nlp from "compromise";
+import SkillInput from "./ui/SkillInput";
 
-const extractFields = (text) => {
-  const result = {
-    name: "",
-    email: "",
-    phone: "",
-    experience: "",
-    education: "",
-  };
-
-  const lines = text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const joinedText = lines.join(" ");
-
-  // 1. Extract full name using NLP (compromise)
-  const doc = nlp(joinedText);
-  const people = doc.people().out("array");
-  if (people.length > 0) {
-    result.name = people[0];
-  }
-
-  // 2. Email extraction (more robust pattern)
-  const emailMatch = joinedText.match(
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/g
-  );
-  if (emailMatch?.length) {
-    result.email = emailMatch[0];
-  }
-
-  // 3. Phone extraction (handles more formats, dashes, spaces)
-  const phoneMatch = joinedText.match(
-    /(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}/g
-  );
-  if (phoneMatch?.length) {
-    result.phone = phoneMatch[0];
-  }
-
-  // 4. Fallback: guess name from email if not detected
-  if (!result.name && result.email) {
-    const emailPrefix = result.email.split("@")[0].split(/[._-]/);
-    const guessedName = emailPrefix
-      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-      .join(" ");
-    result.name = guessedName;
-  }
-
-  // 5. Extract work experience block
-  const workMatch = text.match(
-    /(Work Experience|Employment History|Professional Experience)([\s\S]{0,2500})/i
-  );
-  if (workMatch) {
-    const block = workMatch[2]
-      .replace(/(Education|Academic Background|Skills|Certifications|Languages).*/is, "")
-      .trim();
-
-    // Optional line-based cleanup
-    const relevantLines = block
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 10 || /Developer|Engineer|Company|Technologies/i.test(line));
-
-    result.experience = relevantLines.join("\n").trim();
-  }
-
-  // 6. Extract education block
-  const eduMatch = text.match(
-    /(Education|Academic Background)([\s\S]{0,2000})/i
-  );
-  if (eduMatch) {
-    const block = eduMatch[2]
-      .replace(/(Skills|Certifications|Languages|Experience).*/is, "")
-      .trim();
-
-    const eduLines = block
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) =>
-        /Bachelor|Master|College|University|Graduate|High School|School/i.test(line)
-      );
-
-    result.education = eduLines.join("\n").trim();
-  }
-
-  return result;
-};
-
-
-const ResumeForm = ({ extractedData, disabled = false }) => {
+const ResumeForm = ({ structuredData = null, disabled = false }) => {
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
-    experience: "",
-    education: "",
+    location: "",
+    skills: "",
+    experience: [],
+    education: [],
   });
 
-  const [errors, setErrors] = useState({});
-
-  const isFormIncomplete =
-    !form.name.trim() ||
-    !form.email.trim() ||
-    !form.phone.trim() ||
-    !form.experience.trim() ||
-    !form.education.trim();
-
   useEffect(() => {
-    const parsed = extractFields(extractedData);
-    setForm(parsed);
-  }, [extractedData]);
-
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    setErrors((prev) => ({
-      ...prev,
-      [name]: !value.trim() ? `${name[0].toUpperCase() + name.slice(1)} is required.` : "",
-    }));
-  };
+    if (structuredData) {
+      setForm({
+        firstName: structuredData.firstName || "",
+        lastName: structuredData.lastName || "",
+        email: structuredData.email || "",
+        phone: structuredData.phone || "",
+        location: structuredData.location || "",
+        skills: Array.isArray(structuredData.skills)
+        ? structuredData.skills
+        : typeof structuredData.skills === "string"
+        ? structuredData.skills.split(",").map((s) => s.trim())
+        : [],
+        experience: structuredData.experience || [],
+        education: structuredData.education || [],
+      });
+    }
+  }, [structuredData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
 
-    if (value.trim()) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+  const handleArrayChange = (index, field, value, key) => {
+    const newArr = [...form[key]];
+    newArr[index][field] = value;
+    setForm((prev) => ({ ...prev, [key]: newArr }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const errs = {};
-    if (!form.name.trim()) errs.name = "Name is required.";
-    if (!form.email.trim()) errs.email = "Email is required.";
-    if (!form.phone.trim()) errs.phone = "Phone is required.";
-    if (!form.experience.trim()) errs.experience = "Work Experience is required.";
-    if (!form.education.trim()) errs.education = "Educational background is required.";
-
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-    } else {
-      setErrors({});
-      alert("Form submitted:\n" + JSON.stringify(form, null, 2));
-    }
+    alert("Submitted:\n" + JSON.stringify(form, null, 2));
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-6 grid-cols-1">
+    <form onSubmit={handleSubmit} className="grid gap-6">
       <h3 className="text-xl text-slate-500 font-semibold">Personal Information</h3>
-      <div className="grid md:grid-cols-2 col-span-2 gap-6 p-8 bg-white rounded-lg shadow-sm">
-        <div className="md:col-span-2">
-          <TextInput
-            label="*Full Name"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            error={errors.name}
-            disabled={disabled}
-            placeholder="e.g. Juan Dela Cruz"
-          />
-        </div>
-
-        <TextInput
-          label="*Email"
-          type="email"
-          name="email"
-          value={form.email}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={errors.email}
-          disabled={disabled}
-          placeholder="Your email address"
-        />
-
-        <TextInput
-          label="*Phone Number"
-          name="phone"
-          value={form.phone}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          error={errors.phone}
-          disabled={disabled}
-          placeholder="e.g. +63 912 345 6789"
-        />
+      <div className="grid md:grid-cols-2 gap-6 bg-white p-10 rounded-md shadow-sm">
+        <TextInput label="First Name" name="firstName" value={form.firstName} onChange={handleChange} disabled={disabled} />
+        <TextInput label="Last Name" name="lastName" value={form.lastName} onChange={handleChange} disabled={disabled} />
+        <TextInput label="Email" name="email" value={form.email} onChange={handleChange} disabled={disabled} />
+        <TextInput label="Phone" name="phone" value={form.phone} onChange={handleChange} disabled={disabled} />
+        {/* <TextInput label="Location" name="location" value={form.location} onChange={handleChange} disabled={disabled} /> */}
       </div>
+
+      <h3 className="text-xl text-slate-500 font-semibold ">Skills</h3>
+      <div className="grid md:grid-cols-1 gap-6 bg-white p-10 rounded-md shadow-sm">
+        <SkillInput
+          label="Skills"
+          value={form.skills}
+          onChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+          disabled={disabled}
+        />
+      </div>     
 
       <h3 className="text-xl text-slate-500 font-semibold">Work Experience</h3>
-      <div className="grid md:grid-cols-2 col-span-2 gap-6 p-8 bg-white rounded-lg shadow-sm">
-        <div className="md:col-span-2">
-          <TextArea
-            label="*Work Experience"
-            name="experience"
-            value={form.experience}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            error={errors.experience}
-            rows={6}
+      {form.experience.map((exp, i) => (
+        <div key={i} className="grid md:grid-cols-3 gap-4 bg-white p-10 rounded-md shadow-sm">
+          <TextInput
+            label="Company"
+            value={exp.company}
+            onChange={(e) => handleArrayChange(i, "company", e.target.value, "experience")}
+            disabled={disabled}
+          />
+          <TextInput
+            label="Position"
+            value={exp.position}
+            onChange={(e) => handleArrayChange(i, "position", e.target.value, "experience")}
+            disabled={disabled}
+          />
+          <TextInput
+            label="Duration"
+            value={exp.duration}
+            onChange={(e) => handleArrayChange(i, "duration", e.target.value, "experience")}
             disabled={disabled}
           />
         </div>
-      </div>
+      ))}
 
-      <h3 className="text-xl text-slate-500 font-semibold">Educational Background</h3>
-      <div className="grid md:grid-cols-2 col-span-2 gap-6 p-8 bg-white rounded-lg shadow-sm">
-        <div className="md:col-span-2">
-          <TextArea
-            label="*Education"
-            name="education"
-            value={form.education}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            error={errors.education}
-            rows={6}
+      <h3 className="text-xl text-slate-500 font-semibold">Education</h3>
+      {form.education.map((edu, i) => (
+        <div key={i} className="grid md:grid-cols-3 gap-4 bg-white p-10 rounded-md shadow-sm">
+          <TextInput
+            label="Institution"
+            value={edu.institution}
+            onChange={(e) => handleArrayChange(i, "institution", e.target.value, "education")}
+            disabled={disabled}
+          />
+          <TextInput
+            label="Degree"
+            value={edu.degree}
+            onChange={(e) => handleArrayChange(i, "degree", e.target.value, "education")}
+            disabled={disabled}
+          />
+          <TextInput
+            label="Year"
+            value={edu.year}
+            onChange={(e) => handleArrayChange(i, "year", e.target.value, "education")}
             disabled={disabled}
           />
         </div>
-      </div>
+      ))}
 
-      <div className="col-span-2 flex justify-center">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={disabled || isFormIncomplete}
-          classNames="px-10"
-        >
+      <div className="flex justify-center">
+        <Button type="submit" variant="primary" classNames="px-10" disabled={disabled}>
           Submit Form
         </Button>
       </div>

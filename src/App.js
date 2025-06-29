@@ -1,7 +1,7 @@
 import './App.css';
 import React, { useState } from 'react';
 import FileUpload from './components/FileUpload';
-import SmartTextParser from './utils/SmartTextParser';
+import SmartTextParser from './utils/main/SmartTextParser';
 import Header from './components/layouts/Header';
 
 function App() {

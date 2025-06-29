@@ -5,7 +5,7 @@ import clsx from "clsx";
 const StatusNotice = ({ type = "info", message, show = true }) => {
   if (!show || !message) return null;
 
-  const baseClass = "px-4 py-2 rounded-md border text-sm";
+  const baseClass = "px-4 py-2 rounded-md border text-sm mb-2";
 
   const variants = {
     info: "bg-blue-50 text-blue-800 border-blue-200",
